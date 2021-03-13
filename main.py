@@ -5,6 +5,7 @@ from torch.autograd import Variable
 from src.variables import *
 from PIL import Image
 from src.vgg16_classes import imgclasses
+from src.utility_funcs import print_model
 
 
 def predict_image(image):
@@ -15,7 +16,7 @@ def predict_image(image):
     model.eval()
     output = model(cnn_input)
     _, predicted = torch.max(output.data, 1)
-    lrp.e_lrp(model, cnn_input)
+    lrp.preform_lrp(model, cnn_input)
     return predicted.sum().item()
 
 

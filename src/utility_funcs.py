@@ -1,11 +1,17 @@
-from PIL import ImageEnhance, ImageOps
+from os import listdir
+from os.path import isfile, join
 from src.variables import *
 import numpy as np
-import os
 import torch.nn
 import matplotlib.pyplot as plt
 import copy
 from torchsummary import summary
+from src.vgg16_classes import imgclasses
+
+
+# Returns all the files with their attached paths.
+def get_all_photos(path):
+    return [join(path, f) for f in listdir(path) if isfile(join(path, f))]
 
 
 # This function takes a list of Linear layers and converts them to Conv2D layers.
@@ -57,11 +63,11 @@ def heatmap(R,sx,sy):
     plt.show()
 
 
-def digit(X,sx,sy):
+def digit(X, sx, sy):
     plt.figure(figsize=(sx,sy))
-    plt.subplots_adjust(left=0,right=1,bottom=0,top=1)
+    plt.subplots_adjust(left=0, right=1,  bottom=0, top=1)
     plt.axis('off')
-    plt.imshow(X,interpolation='nearest',cmap='gray')
+    plt.imshow(X,interpolation='nearest', cmap='gray')
     plt.show()
 
 
@@ -103,16 +109,16 @@ def show_image(image, figsize=(8, 4), title=None):
 def print_model(model):
     model.eval()
     model.to(device)
-    print(summary(model, (1, 28, 28)))
+    print(summary(model, (3, 224, 224)))
     print(model)
 
 
 # This function processes the data of the relevancy so its in the correct form
 # to be presented.
-def process_array(arr):
+def process_array(arr, R):
     output = []
-    for lable, element in arr:
-        output.append((lable, np.array(element.cpu()).sum(axis=0)))
+    for lable, index in arr:
+        output.append((lable, np.array(R[index][0]).sum(axis=0)))
     return output
 
 
@@ -121,7 +127,7 @@ def process_percentage(tuple):
     out_str = ""
     for index, percentage in tuple:
         if percentage == 1.0:
-            out_str += "{}: 100% ".format(index)
+            out_str += "{}: 100% ".format(imgclasses[index])
         else:
             out_str += "{}: {:.5%} ".format(index, percentage)
     return out_str
