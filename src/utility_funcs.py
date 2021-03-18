@@ -1,5 +1,5 @@
-from os import listdir
-from os.path import isfile, join
+from os import listdir, mkdir
+from os.path import isfile, join, exists
 from src.variables import *
 import numpy as np
 import torch.nn
@@ -11,7 +11,7 @@ from src.vgg16_classes import imgclasses
 
 # Returns all the files with their attached paths.
 def get_all_photos(path):
-    return [join(path, f) for f in listdir(path) if isfile(join(path, f))]
+    return [(join(path, f),f) for f in listdir(path) if isfile(join(path, f))]
 
 
 # This function takes a list of Linear layers and converts them to Conv2D layers.
@@ -111,6 +111,11 @@ def print_model(model):
     model.to(device)
     print(summary(model, (3, 224, 224)))
     print(model)
+
+
+def make_outputfolder():
+    if not exists(OUTPUT_PATH):
+        mkdir(OUTPUT_PATH)
 
 
 # This function processes the data of the relevancy so its in the correct form

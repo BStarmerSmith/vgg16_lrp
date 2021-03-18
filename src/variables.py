@@ -1,7 +1,7 @@
 from torchvision import transforms
 import torch
 
-conv_layers = [("Conv2d-12", 28), ("Conv2d-10", 24), ("Conv2d-8", 19), ("Conv2d-7", 14), ("Conv2d-6", 12),
+conv_layers = [("Conv2d-12", 28), ("Conv2d-11", 26), ("Conv2d-10", 24), ("Conv2d-8", 19), ("Conv2d-7", 14), ("Conv2d-6", 12),
                 ("Conv2d-5", 10), ("Conv2d-4", 7), ("Conv2d-3", 5), ("Conv2d-2", 2), ("Conv2d-1", 0)]
 DATA_DIRECTORY = "data\\"
 OUTPUT_PATH = 'data/Output'

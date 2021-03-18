@@ -3,9 +3,8 @@ from src.variables import *
 from src.vgg16_classes import imgclasses
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
-import torchvision
 from torch.autograd import Variable
-from torchviz import make_dot
+import os
 
 
 # This function takes in an PIL Image, converts it into a tensor then uses the trained cnn to get
@@ -17,19 +16,22 @@ def predict_image(model, image_tensor):
     prediction = torch.topk(torch.nn.functional.softmax(output.data), 5)
     percent, index, percentage = prediction[0].detach().numpy(), prediction[1].detach().numpy(), []
     for i in range(0,5):
-        percentage.append((index[0][i], percent[0][i]))
-    return expectedVal.sum().item(), percentage
+        imgclass = imgclasses[index[0][i]].split(",")[0]
+        percentage.append((imgclass, percent[0][i]))
+    return imgclasses[expectedVal.sum().item()], percentage
 
 
 # This function takes in a PIL image, converts it to a tensor and predicts what the image
 # will be, it then passes the model and img_tensor to the LRP function which returns the
 # relevancy of the input at all layers, and presents them.
-def preform_lrp(model, image_tensor, output_dir=OUTPUT_PATH):
+def preform_lrp(model, image_tensor, filename, image):
     R = e_lrp(model, image_tensor)
     relevance = process_array(conv_layers, R)
     predicted_val, percentage = predict_image(model, image_tensor)
     percentagestr = process_percentage(percentage)
-    plot_images(image_tensor, relevance, predicted_val, percentagestr, output_dir)
+    outdir = os.path.join(OUTPUT_PATH, filename)
+    print("Predictied value of image is {}. File is: {}".format(predicted_val, outdir))
+    plot_images(image, relevance, predicted_val, percentagestr, outdir)
 
 
 # This function takes in the model of the Network and an image_tensor. This is what
@@ -84,11 +86,10 @@ def e_lrp(model, img_tensor):
 # and the likely-hood the model thinks its correct.
 def plot_images(init_img, R, predicted_val, outstring, output_dir):
     fig = plt.figure(figsize=(10, 10))
-    columns, rows, i = 3, 4, 2
+    columns, rows, i = 4, 3, 2
     fig.add_subplot(rows, columns, 1).set_title("Input Image")
     plt.axis('off')
-    #plt.imshow(init_img)
-    plt.imshow(torchvision.utils.make_grid(init_img, nrow=5).permute(1, 2, 0))
+    plt.imshow(init_img)
     for label, r in R:
         b = 10 * ((np.abs(r) ** 3.0).mean() ** (1.0/3))
         my_cmap = plt.cm.seismic(np.arange(plt.cm.seismic.N))
@@ -99,9 +100,8 @@ def plot_images(init_img, R, predicted_val, outstring, output_dir):
         plt.imshow(r, cmap=my_cmap, vmin=-b, vmax=b, interpolation='nearest')
         i = i + 1
     plt.tight_layout()
-    plt.figtext(0.5, 0.04, "Predicted value of Network is {} \n {}".format(predicted_val, outstring), ha="center", fontsize=18,
+    plt.figtext(0.5, 0.02, "Predicted value of Network is {} \n {}".format(predicted_val, outstring), ha="center", fontsize=12,
                 bbox={"facecolor":"purple", "alpha":0.5, "pad":5})
-    plt.show()
     fig.savefig(output_dir)
 
 
