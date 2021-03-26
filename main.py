@@ -13,7 +13,8 @@ def predict_image(image, path):
     cnn_input = Variable(image_tensor)
     model = torchvision.models.vgg16(pretrained=True)
     model.eval()
-    lrp.preform_lrp(model, cnn_input, path, image)
+    lrp.preform_e_lrp(model, cnn_input, path, image)
+    lrp.preform_ye_lrp(model, cnn_input, path, image)
 
 
 if __name__ == '__main__':

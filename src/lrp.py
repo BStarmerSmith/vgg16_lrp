@@ -24,13 +24,23 @@ def predict_image(model, image_tensor):
 # This function takes in a PIL image, converts it to a tensor and predicts what the image
 # will be, it then passes the model and img_tensor to the LRP function which returns the
 # relevancy of the input at all layers, and presents them.
-def preform_lrp(model, image_tensor, filename, image):
+def preform_e_lrp(model, image_tensor, filename, image):
     R = e_lrp(model, image_tensor)
     relevance = process_array(conv_layers, R)
     predicted_val, percentage = predict_image(model, image_tensor)
     percentagestr = process_percentage(percentage)
-    outdir = os.path.join(OUTPUT_PATH, filename)
+    outdir = os.path.join(os.path.join(OUTPUT_PATH, "e"), filename)
     print("Predictied value of image is {}. File is: {}".format(predicted_val, outdir))
+    plot_images(image, relevance, predicted_val, percentagestr, outdir)
+
+
+# Same as code above but preforms multiple rules, instead of just one.
+def preform_ye_lrp(model, image_tensor, filename, image):
+    R = ye_lrp(model, image_tensor)
+    relevance = process_array(conv_layers, R)
+    predicted_val, percentage = predict_image(model, image_tensor)
+    percentagestr = process_percentage(percentage)
+    outdir = os.path.join(os.path.join(OUTPUT_PATH, "ye"), filename)
     plot_images(image, relevance, predicted_val, percentagestr, outdir)
 
 
@@ -38,6 +48,7 @@ def preform_lrp(model, image_tensor, filename, image):
 # The LRP algorithm is applied to, it converts all layers to Conv2D then preforms all
 # forward passes so we can get the relevancy of the network at all layers.
 # This function returns the relevance [R] of all layers within the network (except dropout).
+# Code inspired from: https://git.tu-berlin.de/gmontavon/lrp-tutorial/-/blob/main/utils.py
 def e_lrp(model, img_tensor):
     X = img_tensor
     layers = list(model._modules['features']) + toconv(list(model._modules['classifier']))
@@ -52,16 +63,12 @@ def e_lrp(model, img_tensor):
         if isinstance(layers[l], torch.nn.MaxPool2d):
             layers[l] = torch.nn.AvgPool2d(2)
         if isinstance(layers[l], torch.nn.Conv2d) or isinstance(layers[l],torch.nn.AvgPool2d):
-            if l <= 16:
+            if l <= 30:  # LRP-ε
                 rho = lambda p: p + 0.25*p.clamp(min=0)
                 incr = lambda z: z+1e-9
-            if 17 <= l <= 30:
-                rho = lambda p: p
-                incr = lambda z: z+1e-9+0.25*((z**2).mean()**.5).data
-            if l >= 31:
+            if l >= 31:  # LRP-0
                 rho = lambda p: p
                 incr = lambda z: z+1e-9
-
             z = incr(newlayer(layers[l], rho).forward(A[l]))  # step 1
             s = (R[l+1]/z).data                                    # step 2
             (z*s).sum().backward(); c = A[l].grad                  # step 3
@@ -81,6 +88,54 @@ def e_lrp(model, img_tensor):
     c, cp,cm = A[0].grad, lb.grad, hb.grad
     R[0] = (A[0] * c + lb * cp + hb * cm).data
     return R
+
+
+# Works very similar to E-LRP but applies a few rules instead of just E-LRP.
+# Code inspired from: https://git.tu-berlin.de/gmontavon/lrp-tutorial/-/blob/main/utils.py
+def ye_lrp(model, img_tensor):
+    X = img_tensor
+    layers = list(model._modules['features']) + toconv(list(model._modules['classifier']))
+    L = len(layers)
+    A = [X]+[None]*L
+    for l in range(L):
+        A[l+1] = layers[l].forward(A[l])
+    T = torch.FloatTensor((1.0*(np.arange(1000)==483).reshape([1,1000,1,1])))
+    R = [None]*L + [(A[-1]*T).data]
+    for l in range(1, L)[::-1]:
+        A[l] = (A[l].data).requires_grad_(True)
+        if isinstance(layers[l], torch.nn.MaxPool2d):
+            layers[l] = torch.nn.AvgPool2d(2)
+        if isinstance(layers[l], torch.nn.Conv2d) or isinstance(layers[l],torch.nn.AvgPool2d):
+            if l <= 16:  # LRP-ε
+                rho = lambda p: p + 0.25*p.clamp(min=0)
+                incr = lambda z: z+1e-9
+            if 17 <= l <= 30: # LRP-γ
+                rho = lambda p: p
+                incr = lambda z: z+1e-9+0.25*((z**2).mean()**.5).data
+            if l >= 31:  # LRP-0
+                rho = lambda p: p
+                incr = lambda z: z+1e-9
+
+            z = incr(newlayer(layers[l], rho).forward(A[l]))       # step 1
+            s = (R[l+1]/z).data                                    # step 2
+            (z*s).sum().backward(); c = A[l].grad                  # step 3
+            R[l] = (A[l]*c).data                                   # step 4
+        else:
+            R[l] = R[l+1]
+
+    A[0] = A[0].data.requires_grad_(True)
+    lb = (A[0].data*0+(0-MEAN)/STD).requires_grad_(True)
+    hb = (A[0].data*0+(1-MEAN)/STD).requires_grad_(True)
+
+    z = layers[0].forward(A[0]) + 1e-9
+    z -= newlayer(layers[0],lambda p: p.clamp(min=0)).forward(lb)
+    z -= newlayer(layers[0],lambda p: p.clamp(max=0)).forward(hb)
+    s = (R[1]/z).data
+    (z*s).sum().backward()
+    c, cp,cm = A[0].grad, lb.grad, hb.grad
+    R[0] = (A[0] * c + lb * cp + hb * cm).data
+    return R
+
 
 # This function is used to display LRP and the input image with the predicted values
 # and the likely-hood the model thinks its correct.

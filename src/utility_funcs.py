@@ -11,12 +11,13 @@ from src.vgg16_classes import imgclasses
 
 # Returns all the files with their attached paths.
 def get_all_photos(path):
-    return [(join(path, f),f) for f in listdir(path) if isfile(join(path, f))]
+    return [(join(path, f), f) for f in listdir(path) if isfile(join(path, f))]
 
 
 # This function takes a list of Linear layers and converts them to Conv2D layers.
 # The layer at index 0 needs to be specifically formatted to deal with the adjustment
 # of a 2d network to a 1d network.
+# Code from: https://git.tu-berlin.de/gmontavon/lrp-tutorial/-/blob/main/utils.py
 def toconv(layers):
     newlayers = []
     for i,layer in enumerate(layers):
@@ -37,6 +38,7 @@ def toconv(layers):
     return newlayers
 
 
+# Code from https://git.tu-berlin.de/gmontavon/lrp-tutorial/-/blob/main/utils.py
 def newlayer(layer, g):
     layer = copy.deepcopy(layer)
     try:
@@ -48,36 +50,6 @@ def newlayer(layer, g):
     except AttributeError:
         pass
     return layer
-
-
-def heatmap(R,sx,sy):
-    b = 10*((np.abs(R)**3.0).mean()**(1.0/3))
-    from matplotlib.colors import ListedColormap
-    my_cmap = plt.cm.seismic(np.arange(plt.cm.seismic.N))
-    my_cmap[:,0:3] *= 0.85
-    my_cmap = ListedColormap(my_cmap)
-    plt.figure(figsize=(sx,sy))
-    plt.subplots_adjust(left=0,right=1,bottom=0,top=1)
-    plt.axis('off')
-    plt.imshow(R,cmap=my_cmap,vmin=-b,vmax=b,interpolation='nearest')
-    plt.show()
-
-
-def digit(X, sx, sy):
-    plt.figure(figsize=(sx,sy))
-    plt.subplots_adjust(left=0, right=1,  bottom=0, top=1)
-    plt.axis('off')
-    plt.imshow(X,interpolation='nearest', cmap='gray')
-    plt.show()
-
-
-def image(X,sx,sy):
-    plt.figure(figsize=(sx,sy))
-    plt.subplots_adjust(left=0,right=1,bottom=0,top=1)
-    plt.axis('off')
-    plt.imshow(X,interpolation='nearest')
-    plt.show()
-
 
 # -------------------------------------------------------
 
@@ -116,6 +88,13 @@ def print_model(model):
 def make_outputfolder():
     if not exists(OUTPUT_PATH):
         mkdir(OUTPUT_PATH)
+    e_path = join(OUTPUT_PATH, "e")
+    ye_path = join(OUTPUT_PATH, "ye")
+    if not exists(e_path):
+        mkdir(e_path)
+    if not exists(ye_path):
+        mkdir(ye_path)
+
 
 
 # This function processes the data of the relevancy so its in the correct form
