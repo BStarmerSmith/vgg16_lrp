@@ -155,7 +155,7 @@ def plot_images(init_img, R, predicted_val, outstring, output_dir):
         plt.imshow(r, cmap=my_cmap, vmin=-b, vmax=b, interpolation='nearest')
         i = i + 1
     plt.tight_layout()
-    plt.figtext(0.5, 0.02, "Predicted value of Network is {} \n {}".format(predicted_val, outstring), ha="center", fontsize=12,
+    plt.figtext(0.5, 0.02, "Predicted value of Network is {} \n {}".format(predicted_val, outstring), ha="center", fontsize=10,
                 bbox={"facecolor":"purple", "alpha":0.5, "pad":5})
     fig.savefig(output_dir)
 
