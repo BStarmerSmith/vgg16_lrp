@@ -2,9 +2,12 @@ from src.utility_funcs import *
 from src.variables import *
 from src.vgg16_classes import imgclasses
 import matplotlib.pyplot as plt
+import torchvision
 from matplotlib.colors import ListedColormap
 from torch.autograd import Variable
 import os
+import numpy as np
+import uuid
 
 
 # This function takes in an PIL Image, converts it into a tensor then uses the trained cnn to get
@@ -19,6 +22,21 @@ def predict_image(model, image_tensor):
         imgclass = imgclasses[index[0][i]].split(",")[0]
         percentage.append((imgclass, percent[0][i]))
     return imgclasses[expectedVal.sum().item()], percentage
+
+
+def testImgNetV2Images(path, epoch):
+    model = torchvision.models.vgg16(pretrained=True)
+    imgFolder = torchvision.datasets.ImageFolder(path, transform=transform)
+    for e in range(epoch):
+        print("On iteration {}.".format(e))
+        loader = torch.utils.data.DataLoader(imgFolder, batch_size=1, shuffle=True)
+        for input, lab in loader:
+            i = input.squeeze()
+            i = i.permute(1,2,0)
+            i = np.clip(i, 0, 1)
+            name = str(uuid.uuid4()) + ".jpg"
+            preform_e_lrp(model, input, name, i)
+            preform_ye_lrp(model, input, name, i)
 
 
 # This function takes in a PIL image, converts it to a tensor and predicts what the image
@@ -144,7 +162,7 @@ def plot_images(init_img, R, predicted_val, outstring, output_dir):
     columns, rows, i = 4, 3, 2
     fig.add_subplot(rows, columns, 1).set_title("Input Image")
     plt.axis('off')
-    plt.imshow(init_img)
+    plt.imshow(init_img, vmin=0, vmax=255)
     for label, r in R:
         b = 10 * ((np.abs(r) ** 3.0).mean() ** (1.0/3))
         my_cmap = plt.cm.seismic(np.arange(plt.cm.seismic.N))
