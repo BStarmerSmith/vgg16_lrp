@@ -81,7 +81,7 @@ def e_lrp(model, img_tensor):
         if isinstance(layers[l], torch.nn.MaxPool2d):
             layers[l] = torch.nn.AvgPool2d(2)
         if isinstance(layers[l], torch.nn.Conv2d) or isinstance(layers[l],torch.nn.AvgPool2d):
-            if l <= 30:  # LRP-ε
+            if l <= 30:  # LRP-e
                 rho = lambda p: p
                 incr = lambda z: z+1e-9+0.25*((z**2).mean()**.5).data
             if l >= 31:  # LRP-0
@@ -124,10 +124,10 @@ def ye_lrp(model, img_tensor):
         if isinstance(layers[l], torch.nn.MaxPool2d):
             layers[l] = torch.nn.AvgPool2d(2)
         if isinstance(layers[l], torch.nn.Conv2d) or isinstance(layers[l],torch.nn.AvgPool2d):
-            if l <= 16:  # LRP-γ
+            if l <= 16:  # LRP-y
                 rho = lambda p: p + 0.25*p.clamp(min=0)
                 incr = lambda z: z+1e-9
-            if 17 <= l <= 30: # LRP-ε
+            if 17 <= l <= 30: # LRP-e
                 rho = lambda p: p
                 incr = lambda z: z+1e-9+0.25*((z**2).mean()**.5).data
             if l >= 31:  # LRP-0
