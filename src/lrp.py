@@ -82,18 +82,18 @@ def e_lrp(model, img_tensor):
             layers[l] = torch.nn.AvgPool2d(2)
         if isinstance(layers[l], torch.nn.Conv2d) or isinstance(layers[l],torch.nn.AvgPool2d):
             if l <= 30:  # LRP-ε
-                rho = lambda p: p + 0.25*p.clamp(min=0)
-                incr = lambda z: z+1e-9
+                rho = lambda p: p
+                incr = lambda z: z+1e-9+0.25*((z**2).mean()**.5).data
             if l >= 31:  # LRP-0
                 rho = lambda p: p
                 incr = lambda z: z+1e-9
-            z = incr(newlayer(layers[l], rho).forward(A[l]))  # step 1
+            z = incr(newlayer(layers[l], rho).forward(A[l]))       # step 1
             s = (R[l+1]/z).data                                    # step 2
             (z*s).sum().backward(); c = A[l].grad                  # step 3
             R[l] = (A[l]*c).data                                   # step 4
         else:
             R[l] = R[l+1]
-
+    # LRP-zB
     A[0] = (A[0].data).requires_grad_(True)
     lb = (A[0].data*0+(0-MEAN)/STD).requires_grad_(True)
     hb = (A[0].data*0+(1-MEAN)/STD).requires_grad_(True)
@@ -124,10 +124,10 @@ def ye_lrp(model, img_tensor):
         if isinstance(layers[l], torch.nn.MaxPool2d):
             layers[l] = torch.nn.AvgPool2d(2)
         if isinstance(layers[l], torch.nn.Conv2d) or isinstance(layers[l],torch.nn.AvgPool2d):
-            if l <= 16:  # LRP-ε
+            if l <= 16:  # LRP-γ
                 rho = lambda p: p + 0.25*p.clamp(min=0)
                 incr = lambda z: z+1e-9
-            if 17 <= l <= 30: # LRP-γ
+            if 17 <= l <= 30: # LRP-ε
                 rho = lambda p: p
                 incr = lambda z: z+1e-9+0.25*((z**2).mean()**.5).data
             if l >= 31:  # LRP-0
