@@ -111,7 +111,7 @@ def process_percentage(tuple):
     out_str = ""
     for index, percentage in tuple:
         if percentage == 1.0:
-            out_str += "{}: 100% ".format(imgclasses[index])
+            out_str += "{}: 100% ".format(index)
         else:
             out_str += "{}: {:.5%} ".format(index, percentage)
     return out_str
